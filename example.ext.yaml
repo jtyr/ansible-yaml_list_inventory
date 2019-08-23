@@ -1,0 +1,8 @@
+---
+
+plugin: yaml_list
+data_file: inventory_data/example.yaml
+#ungrouped_name: ungrouped_hosts
+#accept: []
+#ignore: []
+#grouping: {}
