@@ -99,6 +99,24 @@ ansible-playbook -i inventory_sources site.yaml
 ```
 
 
+`yamllistctl.py`
+----------------
+
+This script allows to search, add or remove record from the YAML List inventory
+data file.
+
+```shell
+# Search
+./yamllistctl.py -d -f inventory_data/prd.yaml search aws-dev-test03
+
+# Add host
+./yamllistctl.py -d -f inventory_data/prd.yaml add aws-dev-test03 192.168.1.123
+
+# Remove host
+./yamllistctl.py -d -f inventory_data/prd.yaml remove aws-dev-test03
+```
+
+
 License
 -------
 
