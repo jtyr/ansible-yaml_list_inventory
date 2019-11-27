@@ -23,6 +23,16 @@ DOCUMENTATION = '''
         description:
           - Name of the key which defines the group assignment.
         default: ansible_group
+      add_inv_var:
+        description:
+          - Whether to add all data keys/values as an invengory variable.
+        type: bool
+        default: yes
+      inv_var_key:
+        description:
+          - Key under which to add all data keys/values as an invengory
+            variable.
+        default: yaml_list
       data_file:
         description:
           - Path to the data YAML file.
@@ -38,7 +48,8 @@ DOCUMENTATION = '''
             key/value pairs of an item from the C(data_file). The value can
             start with C(~) indicating that the value represents a regular
             expression. It can also start with C(!) indicating negation of the
-            value.
+            value or regular expression. Don't use negative regular expression,
+            negate regular expression with the C(!) instead.
           - Relations between individual items of the list is logical OR.
           - Relations between individual keys of the list item is logical AND.
           - The C(accept) conditions are evaluated before C(ignore) conditions.
@@ -83,18 +94,18 @@ data_file: /path/to/the/data_file.yaml
 #accept:
 #  - uuid: ~.*a$
 # Ignore all hosts which have 'state' equal to 'poweredOff' OR have their 'ip'
-# not set OR have 'guest' value starting with 'win' AND also 'group' key
+# not set OR have 'guest_id' value starting with 'win' AND also 'group' key
 # doesn't exists or its value doesn't contain 'mygroup'
 #ignore:
 #  - state: poweredOff
 #  - ip: null
-#  - guest: ~^win.*
-#    _ansible_group: ~(?!mygroup)
-# Add all hosts having 'guest' value starting with 'win' into the 'windows'
+#  - guest_id: ~^win.*
+#    _ansible_group: !~.*mygroup
+# Add all hosts having 'guest_id' value starting with 'win' into the 'windows'
 # group
 #grouping:
 #  windows:
-#    - guest: ~^win
+#    - guest_id: ~^win
 
 #
 # Example of the data file content
@@ -102,8 +113,10 @@ data_file: /path/to/the/data_file.yaml
 #
 # Add host into the default group (the ungrouped_name key in source file) and
 # also into the 'jenkins' and 'team1' groups.
-- ansible_group: jenkins,team1
-  guest: centos64Guest
+- ansible_group:
+    - jenkins
+    - team1
+  guest_id: centos64Guest
   ip: 192.168.1.102
   name: aws-prd-jenkins01
   state: poweredOn
@@ -112,16 +125,17 @@ data_file: /path/to/the/data_file.yaml
 # (the ungrouped_name key in source file) at all.
 - ansible_group: rdp
   override_ungrouped: yes
-  guest: windows8Server64Guest
+  guest_id: windows8Server64Guest
   ip: 192.168.1.12
   name: aws-prd-rdp03
   state: poweredOff
   uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
-- guest: centos64Guest
+- guest_id: centos64Guest
   ip: null
   name: aws-qa-data02
   state: poweredOff
   uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
+- name: aws-qa-data03
 '''
 
 
@@ -181,7 +195,7 @@ class InventoryModule(BaseFileInventoryPlugin):
             # Override the default group if requested
             if (
                     'override_ungrouped' in host and
-                    host['override_ungrouped'] == True):
+                    host['override_ungrouped'] is True):
                 groups = []
             else:
                 groups = [self.get_option('ungrouped_name')]
@@ -190,10 +204,14 @@ class InventoryModule(BaseFileInventoryPlugin):
             if group_key in host:
                 group_key_v = host[group_key]
 
-                if ',' in group_key_v:
-                    groups += map(lambda x: x.strip(), group_key_v.split(','))
+                if isinstance(group_key_v, list):
+                    groups += group_key_v
                 else:
-                    groups += [group_key_v]
+                    if ',' in group_key_v:
+                        groups += map(
+                            lambda x: x.strip(), group_key_v.split(','))
+                    else:
+                        groups += [group_key_v]
 
             # Add the host into each of the groups
             for group in groups:
@@ -205,6 +223,20 @@ class InventoryModule(BaseFileInventoryPlugin):
                     if 'ip' in host and host['ip'] is not None:
                         self.inventory.set_variable(
                             host['name'], 'ansible_host', host['ip'])
+
+                    # Add all data keys/values as an inventory var
+                    if self.get_option('add_inv_var'):
+                        inventory_vars = {}
+
+                        for k, v in host.items():
+                            # Ignore 'ip' and 'name' keys
+                            if k not in ['ip', 'name']:
+                                inventory_vars[k] = v
+
+                        self.inventory.set_variable(
+                            host['name'],
+                            self.get_option('inv_var_key'),
+                            inventory_vars)
 
             # Apply grouping
             for group, conditions in self.get_option('grouping').items():
@@ -225,39 +257,66 @@ class InventoryModule(BaseFileInventoryPlugin):
             for k, v in c.items():
                 i += 1
                 optional = False
+                neg = False
 
                 if k.startswith(self.get_option('optional_key_prefix')):
                     k = k[1:]
                     optional = True
 
+                if v is not None and v.startswith('!'):
+                    neg = True
+
                 if k in host:
-                    if v is None:
-                        if host[k] is None:
-                            # Matched None value
-                            ret = True
-                        else:
-                            # Nothing matches
-                            ret = False
-                    elif host[k] is not None:
-                        if (
-                                v.startswith('~') and
-                                re.match(v[1:], host[k]) is not None):
-                            # Matched regexp value
-                            ret = True
-                        elif (
-                                v.startswith('!') and
-                                host[k] == v[1:]):
-                            # Matched negative value
-                            ret = True
-                        elif host[k] == v:
-                            # Matched value
-                            ret = True
-                        else:
-                            # Nothing matches
-                            ret = False
+                    if isinstance(host[k], list):
+                        h_vals = host[k]
                     else:
-                        # Nothing matches
-                        ret = False
+                        h_vals = [host[k]]
+
+                    neg_ret = True
+
+                    for h_val in h_vals:
+                        if v is None:
+                            if h_val is None:
+                                # Matched None value
+                                ret = True
+                            else:
+                                # Nothing matches
+                                ret = False
+                                neg_ret &= False
+                        elif h_val is not None:
+                            if (
+                                    v.startswith('!~') and
+                                    re.match(v[2:], h_val) is None):
+                                # Matched negative regexp value
+                                ret = True
+                            elif (
+                                    v.startswith('~') and
+                                    re.match(v[1:], h_val) is not None):
+                                # Matched regexp value
+                                ret = True
+                            elif (
+                                    v.startswith('!') and
+                                    h_val == v[1:]):
+                                # Matched negative value
+                                ret = True
+                            elif h_val == v:
+                                # Matched value
+                                ret = True
+                            else:
+                                # Nothing matches
+                                ret = False
+                                neg_ret &= False
+                        else:
+                            # Nothing matches
+                            ret = False
+                            neg_ret &= False
+
+                        if not neg and ret:
+                            # Breaking list loop because cond is True
+                            break
+
+                    if neg:
+                        ret = neg_ret
                 elif optional:
                     # Key is optional
                     if i < c_len:

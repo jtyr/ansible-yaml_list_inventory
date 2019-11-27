@@ -145,15 +145,23 @@ def add(data, args):
 
                 i['ip'] = args.ip
 
-            if args.group is not None and args.group != '':
-                if 'ansible_group' in i and i['ansible_group'] != args.group:
-                    log.info("Had different ansible_group: %s" % i['group'])
+            if args.group and args.group != '':
+                groups = args.group.split(',')
 
-                    i['ansible_group'] = args.group
+                if len(groups) == 1:
+                    groups = groups[0]
+
+                if (
+                        'ansible_group' in i and
+                        i['ansible_group'] != groups):
+                    log.info(
+                        "Had different ansible_group: %s" % i['ansible_group'])
+
+                    i['ansible_group'] = groups
                 elif 'ansible_group' not in i:
                     log.info("Setting ansible_group")
 
-                    i['ansible_group'] = args.group
+                    i['ansible_group'] = groups
 
             if (
                     (
@@ -163,7 +171,7 @@ def add(data, args):
                         'override_ungrouped' in i and
                         args.override_ungrouped and
                         not i['override_ungrouped'])):
-                log.info("Setting override_ungrouped=yes")
+                log.info("Setting override_ungrouped: true")
 
                 i['override_ungrouped'] = args.override_ungrouped
 
@@ -175,8 +183,13 @@ def add(data, args):
             'ip': args.ip,
         })
 
-        if args.group:
-            data[-1]['ansible_group'] = args.group
+        if args.group and args.group != '':
+            groups = args.group.split(',')
+
+            if len(groups) == 1:
+                groups = groups[0]
+
+            data[-1]['ansible_group'] = groups
 
         if args.override_ungrouped:
             data[-1]['override_ungrouped'] = args.override_ungrouped

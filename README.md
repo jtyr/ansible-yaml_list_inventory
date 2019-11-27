@@ -48,18 +48,18 @@ ungrouped_name: production
 accept:
   - uuid: ~.*a$
 # Ignore all hosts which have 'state' equal to 'poweredOff' OR have their 'ip'
-# not set OR have 'guest' value starting with 'win' AND also 'group' key
+# not set OR have 'guest_id' value starting with 'win' AND also 'group' key
 # doesn't exists or its value doesn't contain 'mygroup'
 #ignore:
 #  - state: poweredOff
 #  - ip: null
-#  - guest: ~^win.*
-#    _ansible_group: ~(?!mygroup)
-# Add all hosts having 'guest' value starting with 'win' into the 'windows'
+#  - guest_id: ~^win.*
+#    _ansible_group: !~.*mygroup
+# Add all hosts having 'guest_id' value starting with 'win' into the 'windows'
 # group
 grouping:
   windows:
-    - guest: ~^win
+    - guest_id: ~^win
 ```
 
 Create data file (`inventory_data/prd.yaml`). The following example is
@@ -70,8 +70,10 @@ generated with a script reading the list of VMs from vCenter:
 
 # Add host into the default group (the ungrouped_name key in source file) and
 # also into the 'jenkins' and 'team1' groups.
-- ansible_group: jenkins,team1
-  guest: centos64Guest
+- ansible_group:
+    - jenkins
+    - team1
+  guest_id: centos64Guest
   ip: 192.168.1.102
   name: aws-prd-jenkins01
   state: poweredOn
@@ -80,16 +82,17 @@ generated with a script reading the list of VMs from vCenter:
 # (the ungrouped_name key in source file) at all.
 - ansible_group: rdp
   override_ungrouped: yes
-  guest: windows8Server64Guest
+  guest_id: windows8Server64Guest
   ip: 192.168.1.12
   name: aws-prd-rdp03
   state: poweredOff
   uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
-- guest: centos64Guest
+- guest_id: centos64Guest
   ip: null
   name: aws-qa-data02
   state: poweredOff
   uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
+- name: aws-qa-data03
 ```
 
 Run Ansible:
@@ -111,6 +114,15 @@ data file.
 
 # Add host
 ./yamllistctl.py -d -f inventory_data/prd.yaml add aws-dev-test03 192.168.1.123
+
+# Add host and set a group
+./yamllistctl.py -d -f inventory_data/prd.yaml add aws-dev-test03 192.168.1.123 mygroup1
+
+# Add host and set groups
+./yamllistctl.py -d -f inventory_data/prd.yaml add aws-dev-test03 192.168.1.123 mygroup1,mygroup2
+
+# Add host, set groups and set override_ungrouped
+./yamllistctl.py -d -f inventory_data/prd.yaml add -o aws-dev-test03 192.168.1.123 mygroup1,mygroup2
 
 # Remove host
 ./yamllistctl.py -d -f inventory_data/prd.yaml remove aws-dev-test03
