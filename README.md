@@ -60,6 +60,9 @@ accept:
 grouping:
   windows:
     - guest_id: ~^win
+# Add inventory variable 'type: vm' to every host
+vars:
+  type: vm
 ```
 
 Create data file (`inventory_data/prd.yaml`). The following example is

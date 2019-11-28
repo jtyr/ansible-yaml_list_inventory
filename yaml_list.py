@@ -81,6 +81,11 @@ DOCUMENTATION = '''
             like the C(accept) list.
         type: dict
         default: {}
+      vars:
+        description:
+          - Dictionary of variables to be added to every host.
+        type: dict
+        default: {}
 '''
 
 EXAMPLES = '''
@@ -106,6 +111,9 @@ data_file: /path/to/the/data_file.yaml
 #grouping:
 #  windows:
 #    - guest_id: ~^win
+# Add inventory variable 'type: vm' to every host
+#vars:
+#  type: vm
 
 #
 # Example of the data file content
@@ -219,24 +227,29 @@ class InventoryModule(BaseFileInventoryPlugin):
                     self._create_group(group)
                     self.inventory.add_host(host['name'], group)
 
+                    inventory_vars = {}
+
                     # Add ansible_host variable
                     if 'ip' in host and host['ip'] is not None:
                         self.inventory.set_variable(
                             host['name'], 'ansible_host', host['ip'])
 
-                    # Add all data keys/values as an inventory var
-                    if self.get_option('add_inv_var'):
-                        inventory_vars = {}
+                    # Add inventory-wide variables
+                    for k, v in self.get_option('vars').items():
+                        inventory_vars[k] = v
 
+                    # Add all host data as inventory vars
+                    if self.get_option('add_inv_var'):
                         for k, v in host.items():
                             # Ignore 'ip' and 'name' keys
                             if k not in ['ip', 'name']:
                                 inventory_vars[k] = v
 
-                        self.inventory.set_variable(
-                            host['name'],
-                            self.get_option('inv_var_key'),
-                            inventory_vars)
+                    # Set the inventory variable
+                    self.inventory.set_variable(
+                        host['name'],
+                        self.get_option('inv_var_key'),
+                        inventory_vars)
 
             # Apply grouping
             for group, conditions in self.get_option('grouping').items():
