@@ -258,10 +258,13 @@ class InventoryModule(BaseFileInventoryPlugin):
                     self.inventory.add_host(host['name'], group)
 
     def _eval_conditions(self, host, conditions, default=True):
-        ret = False
+        self.display.debug("Starting %s" % ('accept' if default else 'ignore'))
+        self.display.debug("Data: %s" % host)
 
         if len(conditions) == 0:
             ret = default
+        else:
+            ret = False
 
         for c in conditions:
             i = 0
@@ -288,64 +291,101 @@ class InventoryModule(BaseFileInventoryPlugin):
                     neg_ret = True
 
                     for h_val in h_vals:
+                        self.display.debug(
+                            "  Key '%s' exists - comparing condition %s=%s "
+                            "with value %s" % (k, k, v, h_val))
+
                         if v is None:
                             if h_val is None:
-                                # Matched None value
+                                self.display.debug("    Matched None value")
+
                                 ret = True
                             else:
-                                # Nothing matches
+                                self.display.debug("    Nothing matches None")
+
                                 ret = False
                                 neg_ret &= False
                         elif h_val is not None:
                             if (
                                     v.startswith('!~') and
                                     re.match(v[2:], h_val) is None):
-                                # Matched negative regexp value
-                                ret = True
+                                self.display.debug(
+                                    "    Matched negative regexp value")
+
+                                ret = False
+                                neg_ret &= False
                             elif (
                                     v.startswith('~') and
                                     re.match(v[1:], h_val) is not None):
-                                # Matched regexp value
+                                self.display.debug("    Matched regexp value")
+
                                 ret = True
                             elif (
                                     v.startswith('!') and
                                     h_val == v[1:]):
-                                # Matched negative value
-                                ret = True
-                            elif h_val == v:
-                                # Matched value
-                                ret = True
-                            else:
-                                # Nothing matches
+                                self.display.debug(
+                                    "    Matched negative value")
+
                                 ret = False
                                 neg_ret &= False
+                            elif h_val == v:
+                                self.display.debug("    Matched value")
+
+                                ret = True
+                            else:
+                                self.display.debug("    Nothing matches")
+
+                                ret = False
+                                neg_ret = True
                         else:
-                            # Nothing matches
+                            self.display.debug(
+                                "    Nothing matches (should not happen)")
+
                             ret = False
                             neg_ret &= False
 
-                        if not neg and ret:
-                            # Breaking list loop because cond is True
-                            break
+                        if not neg_ret:
+                            self.display.debug(
+                                "  <- Breaking value loop because net_reg is "
+                                "False")
 
+                            ret = neg_ret
+
+                            break
+                        elif not neg and ret:
+                            self.display.debug(
+                                "  <- Breaking value loop because cond is True")
+
+                            break
                     if neg:
+                        self.display.debug("  <- Taking net_reg value")
+
                         ret = neg_ret
                 elif optional:
-                    # Key is optional
+                    self.display.debug("  Key '%s' is optional" % k)
+
                     if i < c_len:
-                        # The condition item is not last
                         ret = True
                 else:
-                    # Key does not exist
+                    self.display.debug("  Key '%s' does not exist" % k)
+
                     ret = False
 
                 if not ret:
-                    # Breaking because one of the cond keys is False
-                    break
+                    self.display.debug(
+                        "  <- Breaking key loop because one of the values "
+                        "turn ret=False")
 
+                    break
             if ret:
-                # Breaking because cond is True
+                self.display.debug("  <- Breaking cond loop because ret=True")
+
                 break
+
+        self.display.debug(
+            "Finishing %s with ret=%s" % (
+                ('accept' if default else 'ignore'),
+                ret))
 
         return ret
 

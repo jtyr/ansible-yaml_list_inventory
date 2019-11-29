@@ -105,6 +105,34 @@ ansible-playbook -i inventory_sources site.yaml
 ```
 
 
+Testing
+-------
+
+Tun unit tests:
+
+```shell
+# All unit tests
+python3 -m unittest tests.conditions
+python3 -m unittest tests.conditions.Test
+
+# Specific unit test
+python3 -m unittest tests.conditions.Test.test_equal
+
+# Specific unit test with debug output
+DEBUG=1 python3 -m unittest tests.conditions.Test.test_equal
+```
+
+Test a specific host with specific data and source files:
+
+```shell
+HOST='aws-prd-jenkins01'
+DATA='path/to/my/inventory_data/prd.yaml'
+SOURCE='path/to/my/inventory_sources/prd.ext.yaml'
+DEBUG='1'
+python3 -m unittest tests.conditions.Test.test_real
+```
+
+
 `yamllistctl.py`
 ----------------
 
