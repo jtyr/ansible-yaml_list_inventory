@@ -253,6 +253,84 @@ class Test(MyTestCase):
                     ansible_group=host['ansible_group']):
                 self._test(host, ignore=ignore, expected=host['expected'])
 
+    def test_complex_key(self):
+        tests = [
+            {
+                'host': {
+                    'name': 'test',
+                    'vcenter': {
+                        'guest_id': 'windows8Server64Guest',
+                    },
+                },
+                'accept': [
+                    {
+                        'vcenter.guest_id': 'windows8Server64Guest',
+                    }
+                ],
+                'expected': True,
+            }, {
+                'host': {
+                    'name': 'test',
+                    'guest_id': 'windows8Server64Guest',
+                },
+                'accept': [
+                    {
+                        'vcenter.guest_id': 'windows8Server64Guest',
+                    }
+                ],
+                'expected': False,
+            }, {
+                'host': {
+                    'name': 'test',
+                    'vcenter': {
+                        'nics': [
+                            {
+                                'name': 'eth0',
+                                'mac': '11:22:33:44:55:66',
+                            }, {
+                                'name': 'eth1',
+                                'mac': '22:33:44:55:66:11',
+                            }
+                        ],
+                    },
+                },
+                'accept': [
+                    {
+                        'vcenter.nics[0].name': 'eth0',
+                    }
+                ],
+                'expected': True,
+            }, {
+                'host': {
+                    'name': 'test',
+                    'vcenter': {
+                        'nics': [
+                            {
+                                'name': 'eth0',
+                                'mac': '11:22:33:44:55:66',
+                            }, {
+                                'name': 'eth1',
+                                'mac': '22:33:44:55:66:11',
+                            }
+                        ],
+                    },
+                },
+                'accept': [
+                    {
+                        'vcenter.nics[4].name': 'eth4',
+                    }
+                ],
+                'expected': False,
+            },
+        ]
+
+        for i, t in enumerate(tests):
+            with self.subTest(i=i):
+                self._test(
+                    host=t['host'],
+                    accept=t['accept'],
+                    expected=t['expected'])
+
     def test_real(self):
         if not self._getenvbool('DEBUG', False):
             self.skipTest("No DEBUG defined.")

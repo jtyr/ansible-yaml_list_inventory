@@ -257,6 +257,39 @@ class InventoryModule(BaseFileInventoryPlugin):
                     self._create_group(group)
                     self.inventory.add_host(host['name'], group)
 
+    def _get_host_key_value(self, host, key):
+        hk_exists = False
+        h_v = None
+
+        path = key.split('.')
+
+        # Test the path
+        for p in path:
+            # Test if the path is a ref to a list's item
+            m = re.match(r'(.*)\[(\d+)\]$', p)
+            idx = None
+
+            if m is not None and len(m.groups()) == 2:
+                p = m.group(1)
+                idx = int(m.group(2))
+
+            if p in host:
+                host = host[p]
+
+                if idx is not None:
+                    if isinstance(host, list) and len(host) > abs(idx):
+                        host = host[idx]
+                    else:
+                        break
+            else:
+                break
+        else:
+            # This gets applied only when loop succesfully finished
+            h_v = host
+            hk_exists = True
+
+        return hk_exists, h_v
+
     def _eval_conditions(self, host, conditions, default=True):
         self.display.debug("Starting %s" % ('accept' if default else 'ignore'))
         self.display.debug("Data: %s" % host)
@@ -266,35 +299,45 @@ class InventoryModule(BaseFileInventoryPlugin):
         else:
             ret = False
 
+        # Loop through all conditions
         for c in conditions:
             i = 0
             c_len = len(c.items())
 
+            # Loop through all keys/values of teach condition
             for k, v in c.items():
                 i += 1
                 optional = False
                 neg = False
 
+                # Check if the key is optional
                 if k.startswith(self.get_option('optional_key_prefix')):
                     k = k[1:]
                     optional = True
 
+                # Check if the value is negation
                 if v is not None and v.startswith('!'):
                     neg = True
 
-                if k in host:
-                    if isinstance(host[k], list):
-                        h_vals = host[k]
+                # Check if the key exists in the host
+                hk_exists, h_v = self._get_host_key_value(host, k)
+
+                if hk_exists:
+                    # If the key exists, normalize the value
+                    if isinstance(h_v, list):
+                        h_vals = h_v
                     else:
-                        h_vals = [host[k]]
+                        h_vals = [h_v]
 
                     neg_ret = True
 
+                    # Loop through all value items
                     for h_val in h_vals:
                         self.display.debug(
                             "  Key '%s' exists - comparing condition %s=%s "
                             "with value %s" % (k, k, v, h_val))
 
+                        # Compare the host value with the condition value
                         if v is None:
                             if h_val is None:
                                 self.display.debug("    Matched None value")
@@ -304,7 +347,7 @@ class InventoryModule(BaseFileInventoryPlugin):
                                 self.display.debug("    Nothing matches None")
 
                                 ret = False
-                                neg_ret &= False
+                                neg_ret = False
                         elif h_val is not None:
                             if (
                                     v.startswith('!~') and
@@ -313,7 +356,7 @@ class InventoryModule(BaseFileInventoryPlugin):
                                     "    Matched negative regexp value")
 
                                 ret = False
-                                neg_ret &= False
+                                neg_ret = False
                             elif (
                                     v.startswith('~') and
                                     re.match(v[1:], h_val) is not None):
@@ -327,7 +370,7 @@ class InventoryModule(BaseFileInventoryPlugin):
                                     "    Matched negative value")
 
                                 ret = False
-                                neg_ret &= False
+                                neg_ret = False
                             elif h_val == v:
                                 self.display.debug("    Matched value")
 
@@ -342,7 +385,7 @@ class InventoryModule(BaseFileInventoryPlugin):
                                 "    Nothing matches (should not happen)")
 
                             ret = False
-                            neg_ret &= False
+                            neg_ret = False
 
                         if not neg_ret:
                             self.display.debug(
@@ -354,7 +397,8 @@ class InventoryModule(BaseFileInventoryPlugin):
                             break
                         elif not neg and ret:
                             self.display.debug(
-                                "  <- Breaking value loop because cond is True")
+                                "  <- Breaking value loop because cond is "
+                                "True")
 
                             break
                     if neg:
