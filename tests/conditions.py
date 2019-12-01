@@ -216,8 +216,7 @@ class Test(MyTestCase):
                 'guest_id': 'windows8Server64Guest',
                 'ansible_group': 'bbb',
                 'expected': True,
-            },
-            {
+            }, {
                 'name': 'test',
                 'state': 'poweredOn',
                 'ip': '1.2.3.4',
@@ -231,6 +230,12 @@ class Test(MyTestCase):
                 'guest_id': 'windows8Server64Guest',
                 'ansible_group': ['000', 'bbb', 'zzz'],
                 'expected': True,
+            }, {
+                'name': 'test',
+                'state': 'poweredOn',
+                'ip': '1.2.3.4',
+                'guest_id': 'windows8Server64Guest',
+                'expected': False,
             },
         ]
         ignore = [
@@ -238,19 +243,24 @@ class Test(MyTestCase):
                 'ip': None,
             }, {
                 'guest_id': 'windows8Server64Guest',
-                'ansible_group': '!bbb'
+                '_ansible_group': '!bbb'
             }, {
                 'state': 'poweredOff'
             }
         ]
 
         for i, host in enumerate(data):
+            ag = None
+
+            if 'ansible_group' in host:
+                ag = host['ansible_group']
+
             with self.subTest(
                     i=i,
                     ip=host['ip'],
                     state=host['state'],
                     guest_id=host['guest_id'],
-                    ansible_group=host['ansible_group']):
+                    ansible_group=ag):
                 self._test(host, ignore=ignore, expected=host['expected'])
 
     def test_complex_key(self):
