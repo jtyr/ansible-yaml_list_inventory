@@ -152,28 +152,42 @@ def add(data, args):
                     groups = groups[0]
 
                 if (
-                        'ansible_group' in i and
-                        i['ansible_group'] != groups):
+                        'ansible' in i and
+                        'group' in i['ansible'] and
+                        i['ansible']['group'] != groups):
                     log.info(
-                        "Had different ansible_group: %s" % i['ansible_group'])
+                        "Had different ansible.group: %s" %
+                        i['ansible']['group'])
 
-                    i['ansible_group'] = groups
-                elif 'ansible_group' not in i:
-                    log.info("Setting ansible_group")
+                    i['ansible']['group'] = groups
+                elif (
+                        'ansible' not in i or
+                        'group' not in i['ansible']):
+                    log.info("Setting ansible.group")
 
-                    i['ansible_group'] = groups
+                    if 'ansible' not in i:
+                        i['ansible'] = {}
+
+                    i['ansible']['group'] = groups
 
             if (
                     (
-                        'override_ungrouped' not in i and
+                        (
+                            'ansible' not in i or
+                            'override_ungrouped' not in i['ansible']
+                        ) and
                         args.override_ungrouped
                     ) or (
-                        'override_ungrouped' in i and
+                        'ansible' in i and
+                        'override_ungrouped' in i['ansible'] and
                         args.override_ungrouped and
-                        not i['override_ungrouped'])):
-                log.info("Setting override_ungrouped: true")
+                        not i['ansible']['override_ungrouped'])):
+                log.info("Setting ansible.override_ungrouped: true")
 
-                i['override_ungrouped'] = args.override_ungrouped
+                if 'ansible' not in i:
+                    i['ansible'] = {}
+
+                i['ansible']['override_ungrouped'] = args.override_ungrouped
 
             break
 
@@ -184,15 +198,21 @@ def add(data, args):
         })
 
         if args.group and args.group != '':
+            if 'ansible' not in data[-1]:
+                data[-1]['ansible'] = {}
+
             groups = args.group.split(',')
 
             if len(groups) == 1:
                 groups = groups[0]
 
-            data[-1]['ansible_group'] = groups
+            data[-1]['ansible']['group'] = groups
 
         if args.override_ungrouped:
-            data[-1]['override_ungrouped'] = args.override_ungrouped
+            if 'ansible' not in data[-1]:
+                data[-1]['ansible'] = {}
+
+            data[-1]['ansible']['override_ungrouped'] = args.override_ungrouped
 
 
 def remove(data, args):

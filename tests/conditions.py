@@ -204,37 +204,55 @@ class Test(MyTestCase):
         data = [
             {
                 'name': 'test',
-                'state': 'poweredOn',
                 'ip': '1.2.3.4',
-                'guest_id': 'windows8Server64Guest',
-                'ansible_group': 'aaa',
+                'state': 'poweredOn',
+                'vcenter': {
+                    'guest_id': 'windows8Server64Guest',
+                },
+                'ansible': {
+                    'group': 'aaa',
+                },
                 'expected': False,
             }, {
                 'name': 'test',
-                'state': 'poweredOn',
                 'ip': '1.2.3.4',
-                'guest_id': 'windows8Server64Guest',
-                'ansible_group': 'bbb',
+                'state': 'poweredOn',
+                'vcenter': {
+                    'guest_id': 'windows8Server64Guest',
+                },
+                'ansible': {
+                    'group': 'bbb',
+                },
                 'expected': True,
             }, {
                 'name': 'test',
-                'state': 'poweredOn',
                 'ip': '1.2.3.4',
-                'guest_id': 'windows8Server64Guest',
-                'ansible_group': ['000', 'aaa', 'zzz'],
+                'state': 'poweredOn',
+                'vcenter': {
+                    'guest_id': 'windows8Server64Guest',
+                },
+                'ansible': {
+                    'group': ['000', 'aaa', 'zzz'],
+                },
                 'expected': False,
             }, {
                 'name': 'test',
-                'state': 'poweredOn',
                 'ip': '1.2.3.4',
-                'guest_id': 'windows8Server64Guest',
-                'ansible_group': ['000', 'bbb', 'zzz'],
+                'state': 'poweredOn',
+                'vcenter': {
+                    'guest_id': 'windows8Server64Guest',
+                },
+                'ansible': {
+                  'group': ['000', 'bbb', 'zzz'],
+                },
                 'expected': True,
             }, {
                 'name': 'test',
-                'state': 'poweredOn',
                 'ip': '1.2.3.4',
-                'guest_id': 'windows8Server64Guest',
+                'state': 'poweredOn',
+                'vcenter': {
+                    'guest_id': 'windows8Server64Guest',
+                },
                 'expected': False,
             },
         ]
@@ -242,8 +260,8 @@ class Test(MyTestCase):
             {
                 'ip': None,
             }, {
-                'guest_id': 'windows8Server64Guest',
-                '_ansible_group': '!bbb'
+                'vcenter.guest_id': 'windows8Server64Guest',
+                '_ansible.group': '!bbb'
             }, {
                 'state': 'poweredOff'
             }
@@ -252,14 +270,14 @@ class Test(MyTestCase):
         for i, host in enumerate(data):
             ag = None
 
-            if 'ansible_group' in host:
-                ag = host['ansible_group']
+            if 'ansible' in host and 'group' in host['ansible']:
+                ag = host['ansible']['group']
 
             with self.subTest(
                     i=i,
                     ip=host['ip'],
                     state=host['state'],
-                    guest_id=host['guest_id'],
+                    guest_id=host['vcenter']['guest_id'],
                     ansible_group=ag):
                 self._test(host, ignore=ignore, expected=host['expected'])
 

@@ -34,7 +34,7 @@ END
 Usage
 -----
 
-Create a config file for the plugin (`inventory_sources/prd.ext.yaml`):
+Create a config file for the plugin (`inventory_sources/prd.list.yaml`):
 
 ```yaml
 ---
@@ -53,13 +53,13 @@ accept:
 #ignore:
 #  - state: poweredOff
 #  - ip: null
-#  - guest_id: ~^win.*
-#    _ansible_group: !~.*mygroup
+#  - vcenter.guest_id: ~^win.*
+#    _ansible.group: "!~.*mygroup"
 # Add all hosts having 'guest_id' value starting with 'win' into the 'windows'
 # group
 grouping:
   windows:
-    - guest_id: ~^win
+    - vcenter.guest_id: ~^win
 # Add inventory variable 'type: vm' to every host
 vars:
   type: vm
@@ -73,28 +73,33 @@ generated with a script reading the list of VMs from vCenter:
 
 # Add host into the default group (the ungrouped_name key in source file) and
 # also into the 'jenkins' and 'team1' groups.
-- ansible_group:
-    - jenkins
-    - team1
-  guest_id: centos64Guest
+- ansible:
+    group:
+      - jenkins
+      - team1
   ip: 192.168.1.102
   name: aws-prd-jenkins01
   state: poweredOn
-  uuid: 3ef61642-a703-7b25-d28a-d445487bc19a
+  vcenter:
+    guest_id: centos64Guest
+    uuid: 3ef61642-a703-7b25-d28a-d445487bc19a
 # Put the host only into the 'rpd' group, don't put it into the default group
 # (the ungrouped_name key in source file) at all.
-- ansible_group: rdp
-  override_ungrouped: yes
-  guest_id: windows8Server64Guest
+- ansible:
+    group: rdp
+    override_ungrouped: yes
   ip: 192.168.1.12
   name: aws-prd-rdp03
   state: poweredOff
-  uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
-- guest_id: centos64Guest
-  ip: null
+  vcenter:
+    guest_id: windows8Server64Guest
+    uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
+- ip: null
   name: aws-qa-data02
   state: poweredOff
-  uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
+  vcenter:
+    guest_id: centos64Guest
+    uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
 - name: aws-qa-data03
 ```
 
@@ -127,7 +132,7 @@ Test a specific host with specific data and source files:
 ```shell
 HOST='aws-prd-jenkins01'
 DATA='path/to/my/inventory_data/prd.yaml'
-SOURCE='path/to/my/inventory_sources/prd.ext.yaml'
+SOURCE='path/to/my/inventory_sources/prd.list.yaml'
 DEBUG='1'
 python3 -m unittest tests.conditions.Test.test_real
 ```

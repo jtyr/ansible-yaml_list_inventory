@@ -22,7 +22,7 @@ DOCUMENTATION = '''
       group_key:
         description:
           - Name of the key which defines the group assignment.
-        default: ansible_group
+        default: ansible.group
       add_inv_var:
         description:
           - Whether to add all data keys/values as an invengory variable.
@@ -97,7 +97,7 @@ data_file: /path/to/the/data_file.yaml
 #ungrouped_name: ungrouped_hosts
 # Accept hosts which have 'uuid' value ending with 'a'
 #accept:
-#  - uuid: ~.*a$
+#  - vcenter.uuid: ~.*a$
 # Ignore all hosts which have 'state' equal to 'poweredOff' OR have their 'ip'
 # not set OR have 'guest_id' value starting with 'win' AND also 'group' key
 # doesn't exists or its value doesn't contain 'mygroup'
@@ -105,12 +105,12 @@ data_file: /path/to/the/data_file.yaml
 #  - state: poweredOff
 #  - ip: null
 #  - guest_id: ~^win.*
-#    _ansible_group: !~.*mygroup
+#    _ansible.group: "!~.*mygroup"
 # Add all hosts having 'guest_id' value starting with 'win' into the 'windows'
 # group
 #grouping:
 #  windows:
-#    - guest_id: ~^win
+#    - vcenter.guest_id: ~^win
 # Add inventory variable 'type: vm' to every host
 #vars:
 #  type: vm
@@ -121,28 +121,33 @@ data_file: /path/to/the/data_file.yaml
 #
 # Add host into the default group (the ungrouped_name key in source file) and
 # also into the 'jenkins' and 'team1' groups.
-- ansible_group:
-    - jenkins
-    - team1
-  guest_id: centos64Guest
+- ansible:
+    group:
+      - jenkins
+      - team1
   ip: 192.168.1.102
   name: aws-prd-jenkins01
   state: poweredOn
-  uuid: 3ef61642-a703-7b25-d28a-d445487bc19a
+  vcenter:
+    guest_id: centos64Guest
+    uuid: 3ef61642-a703-7b25-d28a-d445487bc19a
 # Add the host only into the 'rpd' group, don't add it into the default group
 # (the ungrouped_name key in source file) at all.
-- ansible_group: rdp
-  override_ungrouped: yes
-  guest_id: windows8Server64Guest
+- ansible:
+    group: rdp
+    override_ungrouped: yes
   ip: 192.168.1.12
   name: aws-prd-rdp03
   state: poweredOff
-  uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
-- guest_id: centos64Guest
-  ip: null
+  vcenter:
+    guest_id: windows8Server64Guest
+    uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
+- ip: null
   name: aws-qa-data02
   state: poweredOff
-  uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
+  vcenter:
+    guest_id: centos64Guest
+    uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
 - name: aws-qa-data03
 '''
 
@@ -159,7 +164,7 @@ class InventoryModule(BaseFileInventoryPlugin):
 
         if super(InventoryModule, self).verify_file(path):
             # Accept only files with specific extension
-            if path.endswith(('.ext.yaml', '.ext.yml')):
+            if path.endswith(('.list.yaml', '.list.yml')):
                 valid = True
 
         return valid
@@ -202,24 +207,25 @@ class InventoryModule(BaseFileInventoryPlugin):
 
             # Override the default group if requested
             if (
-                    'override_ungrouped' in host and
-                    host['override_ungrouped'] is True):
+                    'ansible' in host and
+                    'override_ungrouped' in host['ansible'] and
+                    host['ansible']['override_ungrouped'] is True):
                 groups = []
             else:
                 groups = [self.get_option('ungrouped_name')]
 
-            # Check if host has associated group(s)
-            if group_key in host:
-                group_key_v = host[group_key]
+            # Check if the group_key exists in the host
+            gk_exists, gk_v = self._get_host_key_value(host, group_key)
 
-                if isinstance(group_key_v, list):
-                    groups += group_key_v
+            # Check if host has associated group(s)
+            if gk_exists:
+                if isinstance(gk_v, list):
+                    groups += gk_v
                 else:
-                    if ',' in group_key_v:
-                        groups += map(
-                            lambda x: x.strip(), group_key_v.split(','))
+                    if ',' in gk_v:
+                        groups += map(lambda x: x.strip(), gk_v.split(','))
                     else:
-                        groups += [group_key_v]
+                        groups += [gk_v]
 
             # Add the host into each of the groups
             for group in groups:
@@ -243,6 +249,12 @@ class InventoryModule(BaseFileInventoryPlugin):
                         for k, v in host.items():
                             # Ignore 'ip' and 'name' keys
                             if k not in ['ip', 'name']:
+                                # Make all `ansible.ansible_*` top facts
+                                if k == 'ansible':
+                                    for ak, av in v.items():
+                                        if ak.startswith('ansible_'):
+                                            inventory[ak] = av
+
                                 inventory_vars[k] = v
 
                     # Set the inventory variable
