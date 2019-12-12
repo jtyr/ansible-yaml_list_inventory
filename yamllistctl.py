@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import re
 import sys
 import yaml
 
@@ -61,6 +62,23 @@ def parse_args():
         '-o', '--override_ungrouped',
         action='store_true',
         help="Set override_ungrouped.")
+
+    parser_set = subparsers.add_parser(
+        'set',
+        help="Set host's property.")
+    parser_set.set_defaults(action='set')
+    parser_set.add_argument(
+        'host',
+        help="Name of the host.")
+    parser_set.add_argument(
+        'path',
+        help="Path where to insert the value.")
+    parser_set.add_argument(
+        'value',
+        help=(
+            "Value which will be inserted into the path. "
+            "Is evaluated as YAML data. "
+            "Set value to 'null' to remove the path."))
 
     parser_remove = subparsers.add_parser(
         'remove',
@@ -215,6 +233,101 @@ def add(data, args):
             data[-1]['ansible']['override_ungrouped'] = args.override_ungrouped
 
 
+def set(data, args):
+    log.debug("Setting property: %s" % args.path)
+
+    h_data = None
+
+    for n, i in enumerate(data):
+        if 'name' in i and i['name'] == args.host:
+            h_data = i
+
+            break
+
+    if h_data is None:
+        log.error("No such host was found.")
+        sys.exit(127)
+
+    try:
+        value = yaml.safe_load(args.value)
+    except yaml.YAMLError as e:
+        log.error("Cannot parse value as YAML: %s" % e)
+        sys.exit(1)
+
+    path = args.path.split('.')
+    path_len = len(path)
+
+    for i, elem in enumerate(path):
+        if i + 1 == path_len:
+            last = True
+        else:
+            last = False
+
+        el_match = re.match(r'(.*)\[(\d+)\]$', elem)
+
+        if el_match is None:
+            key = elem
+            index = None
+        else:
+            key = el_match.group(1)
+            index = int(el_match.group(2))
+
+        if key in h_data:
+            if index is None:
+                if last:
+                    if value is None:
+                        del h_data[key]
+                    else:
+                        h_data[key] = value
+                else:
+                    if (
+                            isinstance(h_data[key], list) or
+                            isinstance(h_data[key], dict)):
+                        h_data = h_data[key]
+                    else:
+                        log.error(
+                            "Key value '%s' is not list or dict." % elem)
+                        sys.exit(1)
+            else:
+                if isinstance(h_data[key], list):
+                    if abs(index) < len(h_data[key]):
+                        if last:
+                            if value is None:
+                                del h_data[key][index]
+                            else:
+                                h_data[key][index] = value
+                        else:
+                            if (
+                                    isinstance(h_data[key][index], list) or
+                                    isinstance(h_data[key][index], dict)):
+                                h_data = h_data[key][index]
+                            else:
+                                log.error(
+                                    "Indexed value of '%s' is not list or "
+                                    "dict." % elem)
+                                sys.exit(1)
+                    else:
+                        log.error("Key index '%s' is out of range." % elem)
+                        sys.exit(127)
+                else:
+                    log.error("Key '%s' is not list." % key)
+                    sys.exit(127)
+        else:
+            if index is None:
+                if last:
+                    if value is not None:
+                        h_data[key] = value
+                    else:
+                        log.warn("Cannot remove non-existing key '%s'." % key)
+                else:
+                    h_data[key] = {}
+                    h_data = h_data[key]
+            else:
+                log.error(
+                    "Cannot create non-existing indexed value '%s'." % elem)
+                sys.exit(127)
+
+
 def remove(data, args):
     log.debug("Removing host: %s" % args.host)
 
@@ -225,7 +338,7 @@ def remove(data, args):
         n = None
 
     if n is None:
-        log.warn("No host of such host was found.")
+        log.warn("No such host was found.")
     else:
         del data[n]
 
@@ -260,6 +373,8 @@ def main():
         search(data, args)
     elif args.action == 'add':
         add(data, args)
+    elif args.action == 'set':
+        set(data, args)
     elif args.action == 'remove':
         remove(data, args)
 
