@@ -1,11 +1,6 @@
 from __future__ import (absolute_import, division, print_function)
-from ansible.errors import AnsibleError, AnsibleParserError
-from ansible.plugins.inventory import BaseFileInventoryPlugin
-
-import yaml
-import re
-
 __metaclass__ = type
+
 
 DOCUMENTATION = '''
     inventory: yaml_list
@@ -126,7 +121,7 @@ data_file: /path/to/the/data_file.yaml
       - jenkins
       - team1
   ip: 192.168.1.102
-  name: aws-prd-jenkins01
+  name: dc1-prd-jenkins01
   state: poweredOn
   vcenter:
     guest_id: centos64Guest
@@ -137,19 +132,26 @@ data_file: /path/to/the/data_file.yaml
     group: rdp
     override_ungrouped: yes
   ip: 192.168.1.12
-  name: aws-prd-rdp03
+  name: dc1-prd-rdp03
   state: poweredOff
   vcenter:
     guest_id: windows8Server64Guest
     uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
 - ip: null
-  name: aws-qa-data02
+  name: dc1-qa-data02
   state: poweredOff
   vcenter:
     guest_id: centos64Guest
     uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
-- name: aws-qa-data03
+- name: dc1-qa-data03
 '''
+
+
+from ansible.errors import AnsibleError, AnsibleParserError
+from ansible.plugins.inventory import BaseFileInventoryPlugin
+
+import yaml
+import re
 
 
 class InventoryModule(BaseFileInventoryPlugin):

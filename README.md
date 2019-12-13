@@ -78,7 +78,7 @@ generated with a script reading the list of VMs from vCenter:
       - jenkins
       - team1
   ip: 192.168.1.102
-  name: aws-prd-jenkins01
+  name: dc1-prd-jenkins01
   state: poweredOn
   vcenter:
     guest_id: centos64Guest
@@ -89,18 +89,18 @@ generated with a script reading the list of VMs from vCenter:
     group: rdp
     override_ungrouped: yes
   ip: 192.168.1.12
-  name: aws-prd-rdp03
+  name: dc1-prd-rdp03
   state: poweredOff
   vcenter:
     guest_id: windows8Server64Guest
     uuid: 321460b2-2750-52a7-3bc4-0f12526960b7
 - ip: null
-  name: aws-qa-data02
+  name: dc1-qa-data02
   state: poweredOff
   vcenter:
     guest_id: centos64Guest
     uuid: 52153396-f7b4-4038-6f00-e16ab5481d79
-- name: aws-qa-data03
+- name: dc1-qa-data03
 ```
 
 Run Ansible:
@@ -130,7 +130,7 @@ DEBUG=1 python3 -m unittest tests.conditions.Test.test_equal
 Test a specific host with specific data and source files:
 
 ```shell
-HOST='aws-prd-jenkins01'
+HOST='dc1-prd-jenkins01'
 DATA='path/to/my/inventory_data/prd.yaml'
 SOURCE='path/to/my/inventory_sources/prd.list.yaml'
 DEBUG='1'
@@ -146,34 +146,34 @@ data file.
 
 ```shell
 # Search
-./yamllistctl.py -d -f inventory_data/prd.yaml search aws-dev-test03
+./yamllistctl.py -d -f inventory_data/prd.yaml search dc1-dev-test03
 
 # Add host
-./yamllistctl.py -d -f inventory_data/prd.yaml add aws-dev-test03 192.168.1.123
+./yamllistctl.py -d -f inventory_data/prd.yaml add dc1-dev-test03 192.168.1.123
 
 # Add host and set a group
-./yamllistctl.py -d -f inventory_data/prd.yaml add aws-dev-test03 192.168.1.123 mygroup1
+./yamllistctl.py -d -f inventory_data/prd.yaml add dc1-dev-test03 192.168.1.123 mygroup1
 
 # Add host and set groups
-./yamllistctl.py -d -f inventory_data/prd.yaml add aws-dev-test03 192.168.1.123 mygroup1,mygroup2
+./yamllistctl.py -d -f inventory_data/prd.yaml add dc1-dev-test03 192.168.1.123 mygroup1,mygroup2
 
 # Add host, set groups and set override_ungrouped
-./yamllistctl.py -d -f inventory_data/prd.yaml add -o aws-dev-test03 192.168.1.123 mygroup1,mygroup2
+./yamllistctl.py -d -f inventory_data/prd.yaml add -o dc1-dev-test03 192.168.1.123 mygroup1,mygroup2
 
 # Set additional data
-./yamllistctl.py -d -f inventory_data/prd.yaml set aws-dev-test03 'vcenter.secondary_ips' '[192.168.1.124, 192.168.1.125]'
+./yamllistctl.py -d -f inventory_data/prd.yaml set dc1-dev-test03 'vcenter.secondary_ips' '[192.168.1.124, 192.168.1.125]'
 
 # Change specific item in the list
-./yamllistctl.py -d -f inventory_data/prd.yaml set aws-dev-test03 'vcenter.secondary_ips[1]' '192.168.1.126'
+./yamllistctl.py -d -f inventory_data/prd.yaml set dc1-dev-test03 'vcenter.secondary_ips[1]' '192.168.1.126'
 
 # Remove particular item in the list
-./yamllistctl.py -d -f inventory_data/prd.yaml set aws-dev-test03 'vcenter.secondary_ips[0]' 'null'
+./yamllistctl.py -d -f inventory_data/prd.yaml set dc1-dev-test03 'vcenter.secondary_ips[0]' 'null'
 
 # Remove particular key
-./yamllistctl.py -d -f inventory_data/prd.yaml set aws-dev-test03 'vcenter.secondary_ips' 'null'
+./yamllistctl.py -d -f inventory_data/prd.yaml set dc1-dev-test03 'vcenter.secondary_ips' 'null'
 
 # Remove host
-./yamllistctl.py -d -f inventory_data/prd.yaml remove aws-dev-test03
+./yamllistctl.py -d -f inventory_data/prd.yaml remove dc1-dev-test03
 ```
 
 
