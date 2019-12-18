@@ -148,7 +148,10 @@ data file.
 # Search
 ./yamllistctl.py -d -f inventory_data/prd.yaml search dc1-dev-test03
 
-# Add host
+# Add host without IP
+./yamllistctl.py -d -f inventory_data/prd.yaml add dc1-dev-test03
+
+# Add host with IP
 ./yamllistctl.py -d -f inventory_data/prd.yaml add dc1-dev-test03 192.168.1.123
 
 # Add host and set a group

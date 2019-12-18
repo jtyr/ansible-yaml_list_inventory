@@ -53,6 +53,7 @@ def parse_args():
         help="Name of the host.")
     parser_add.add_argument(
         'ip',
+        nargs='?',
         help="IP of the host.")
     parser_add.add_argument(
         'group',
@@ -154,14 +155,15 @@ def add(data, args):
 
             found = True
 
-            if 'ip' not in i:
-                log.info("Had no IP defined")
+            if args.ip is not None and args.ip != '':
+                if 'ip' not in i:
+                    log.info("Had no IP defined")
 
-                i['ip'] = args.ip
-            elif i['ip'] != args.ip:
-                log.info("Had different IP: %s" % i['ip'])
+                    i['ip'] = args.ip
+                elif i['ip'] != args.ip:
+                    log.info("Had different IP: %s" % i['ip'])
 
-                i['ip'] = args.ip
+                    i['ip'] = args.ip
 
             if args.group and args.group != '':
                 groups = args.group.split(',')
@@ -210,10 +212,14 @@ def add(data, args):
             break
 
     if not found:
-        data.append({
+        record = {
             'name': args.host,
-            'ip': args.ip,
-        })
+        }
+
+        if args.ip is not None and args.ip != '':
+            record['ip'] = args.ip
+
+        data.append(record)
 
         if args.group and args.group != '':
             if 'ansible' not in data[-1]:
