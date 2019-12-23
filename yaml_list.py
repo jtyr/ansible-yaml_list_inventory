@@ -14,6 +14,13 @@ DOCUMENTATION = '''
       - The YAML List inventory defines the individual hosts and their
         assignment to individual groups.
     options:
+      ip_key:
+        description:
+          - Name of the key which defines carries the IP of the host if
+            defined.
+          - Re-define it if the ansible_hosts variable should be allowed to be
+            set on the group_vars level.
+        default: ansible_host
       group_key:
         description:
           - Name of the key which defines the group assignment.
@@ -189,6 +196,7 @@ class InventoryModule(BaseFileInventoryPlugin):
                 "Unable parse inventory '%s': %s" % (data_file, e))
 
         group_key = self.get_option('group_key')
+        ip_key = self.get_option('ip_key')
 
         # Add individual hosts
         for host in data:
@@ -240,7 +248,7 @@ class InventoryModule(BaseFileInventoryPlugin):
                     # Add ansible_host variable
                     if 'ip' in host and host['ip'] is not None:
                         self.inventory.set_variable(
-                            host['name'], 'ansible_host', host['ip'])
+                            host['name'], ip_key, host['ip'])
 
                     # Add inventory-wide variables
                     for k, v in self.get_option('vars').items():
