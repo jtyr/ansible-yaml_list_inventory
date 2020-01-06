@@ -349,6 +349,30 @@ class Test(MyTestCase):
                     }
                 ],
                 'expected': False,
+            }, {
+                'host': {
+                    'name': 'test',
+                    'vcenter': {
+                        'nics': [
+                            {
+                                'name': 'eth0',
+                                'mac': '11:22:33:44:55:66',
+                            }, {
+                                'name': 'eth1',
+                                'mac': '22:33:44:55:66:11',
+                            }
+                        ],
+                    },
+                },
+                'accept': [
+                    {
+                        'vcenter.nics[0].name': [
+                            'eth0',
+                            '!eth1',
+                        ]
+                    }
+                ],
+                'expected': True,
             },
         ]
 

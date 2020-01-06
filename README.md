@@ -53,13 +53,13 @@ accept:
 #ignore:
 #  - state: poweredOff
 #  - ip: null
-#  - vcenter.guest_id: ~^win.*
+#  - vcenter.guest_id: ~win.*
 #    _ansible.group: "!~.*mygroup"
 # Add all hosts having 'guest_id' value starting with 'win' into the 'windows'
 # group
 grouping:
   windows:
-    - vcenter.guest_id: ~^win
+    - vcenter.guest_id: ~win
 # Add inventory variable 'type: vm' to every host
 vars:
   type: vm
