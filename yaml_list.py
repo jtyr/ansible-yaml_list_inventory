@@ -341,7 +341,7 @@ class InventoryModule(BaseFileInventoryPlugin):
             i = 0
             c_len = len(c.items())
 
-            # Loop through all keys/values of teach condition
+            # Loop through all keys/values of each condition
             for k, k_v in c.items():
                 i += 1
                 optional = False
@@ -359,20 +359,20 @@ class InventoryModule(BaseFileInventoryPlugin):
                 if not isinstance(k_v, list):
                     k_v = [k_v]
 
-                # Loop through all values of the key
-                for v in k_v:
-                    # Check if the value is negation
-                    if v is not None and v.startswith('!'):
-                        neg = True
+                if hk_exists:
+                    # If the key exists, normalize the value
+                    if isinstance(h_v, list):
+                        h_vals = h_v
+                    else:
+                        h_vals = [h_v]
 
-                    if hk_exists:
-                        # If the key exists, normalize the value
-                        if isinstance(h_v, list):
-                            h_vals = h_v
-                        else:
-                            h_vals = [h_v]
+                    neg_ret = True
 
-                        neg_ret = True
+                    # Loop through all values of the key
+                    for v in k_v:
+                        # Check if the value is negation
+                        if v is not None and v.startswith('!'):
+                            neg = True
 
                         # Loop through all value items
                         for h_val in h_vals:
@@ -451,22 +451,22 @@ class InventoryModule(BaseFileInventoryPlugin):
                             self.display.debug("  <- Taking net_reg value")
 
                             ret = neg_ret
-                    elif optional:
-                        self.display.debug("  Key '%s' is optional" % k)
+                elif optional:
+                    self.display.debug("  Key '%s' is optional" % k)
 
-                        if i < c_len:
-                            ret = True
-                    else:
-                        self.display.debug("  Key '%s' does not exist" % k)
+                    if i < c_len:
+                        ret = True
+                else:
+                    self.display.debug("  Key '%s' does not exist" % k)
 
-                        ret = False
+                    ret = False
 
-                    if not ret:
-                        self.display.debug(
-                            "  <- Breaking key loop because one of the values "
-                            "turn ret=False")
+                if not ret:
+                    self.display.debug(
+                        "  <- Breaking key loop because one of the values "
+                        "turn ret=False")
 
-                        break
+                    break
             if ret:
                 self.display.debug("  <- Breaking cond loop because ret=True")
 
