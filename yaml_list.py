@@ -89,6 +89,11 @@ DOCUMENTATION = '''
           - Dictionary of variables to be added to every host.
         type: dict
         default: {}
+      top_fact_key_prefix:
+        description:
+          - Prefix which can be used for keys of inside the C(ansible) key to
+            set top-level facts.
+        default: ^
 '''
 
 EXAMPLES = '''
@@ -123,11 +128,12 @@ data_file: /path/to/the/data_file.yaml
 # (only the key 'name' is requered, the rest is optional)
 #
 # Add host into the default group (the ungrouped_name key in source file) and
-# also into the 'jenkins' and 'team1' groups.
+# also into the 'jenkins' and 'team1' groups. Make the 'myvar' top-level fact.
 - ansible:
     group:
       - jenkins
       - team1
+    ^myvar: foo
   ip: 192.168.1.102
   name: dc1-prd-jenkins01
   state: poweredOn
@@ -198,6 +204,7 @@ class InventoryModule(BaseFileInventoryPlugin):
 
         group_key = self.get_option('group_key')
         ip_key = self.get_option('ip_key')
+        top_fact = self.get_option('top_fact_key_prefix')
 
         # Add individual hosts
         for host in data:
@@ -260,11 +267,18 @@ class InventoryModule(BaseFileInventoryPlugin):
                         for k, v in host.items():
                             # Ignore 'ip' and 'name' keys
                             if k not in ['ip', 'name']:
-                                # Make all `ansible.ansible_*` top facts
+                                # Make top-level facts for specific keys inside
+                                # the ansible.* key
                                 if k == 'ansible':
                                     for ak, av in v.items():
-                                        if ak.startswith('ansible_'):
-                                            inventory[ak] = av
+                                        if (
+                                                ak.startswith('ansible_') or
+                                                ak.startswith(top_fact)):
+                                            if ak.startswith(top_fact):
+                                                ak = ak[1:]
+
+                                            inventory.set_variable(
+                                                host['name'], ak, av)
 
                                 inventory_vars[k] = v
 
