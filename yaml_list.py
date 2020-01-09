@@ -127,8 +127,8 @@ data_file: /path/to/the/data_file.yaml
 # Example of the data file content
 # (only the key 'name' is requered, the rest is optional)
 #
-# Add host into the default group (the ungrouped_name key in source file) and
-# also into the 'jenkins' and 'team1' groups. Make the 'myvar' top-level fact.
+# Override the default group (the ungrouped_name key in source file) with the
+# the 'jenkins' and 'team1' groups. Make the 'myvar' top-level fact.
 - ansible:
     group:
       - jenkins
@@ -140,11 +140,11 @@ data_file: /path/to/the/data_file.yaml
   vcenter:
     guest_id: centos64Guest
     uuid: 3ef61642-a703-7b25-d28a-d445487bc19a
-# Add the host only into the 'rpd' group, don't add it into the default group
-# (the ungrouped_name key in source file) at all.
+# Add host into the default group (the ungrouped_name key in source file) and
+# also into the 'rpd' group.
 - ansible:
     group: rdp
-    override_ungrouped: yes
+    override_ungrouped: no
   ip: 192.168.1.12
   name: dc1-prd-rdp03
   state: poweredOff
@@ -225,8 +225,8 @@ class InventoryModule(BaseFileInventoryPlugin):
 
             # Override the default group if requested
             if (
-                    'ansible' in host and
-                    'override_ungrouped' in host['ansible'] and
+                    'ansible' not in host or
+                    'override_ungrouped' not in host['ansible'] or
                     host['ansible']['override_ungrouped'] is True):
                 groups = []
             else:

@@ -160,8 +160,8 @@ data file.
 # Add host and set groups
 ./yamllistctl.py -d -f inventory_data/prd.yaml add dc1-dev-test03 192.168.1.123 mygroup1,mygroup2
 
-# Add host, set groups and set override_ungrouped
-./yamllistctl.py -d -f inventory_data/prd.yaml add -o dc1-dev-test03 192.168.1.123 mygroup1,mygroup2
+# Add host, set groups and set override_ungrouped=false
+./yamllistctl.py -d -f inventory_data/prd.yaml add -o false dc1-dev-test03 192.168.1.123 mygroup1,mygroup2
 
 # Set additional data
 ./yamllistctl.py -d -f inventory_data/prd.yaml set dc1-dev-test03 'vcenter.secondary_ips' '[192.168.1.124, 192.168.1.125]'

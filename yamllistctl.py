@@ -16,6 +16,17 @@ class MyDumper(yaml.Dumper):
         return super(MyDumper, self).increase_indent(flow, False)
 
 
+def str_to_bool(value):
+    if isinstance(value, bool):
+        return value
+    elif value.lower() in ['false', '0', 'no', 'n']:
+        return False
+    elif value.lower() in ['true', '1', 'yes', 'y']:
+        return True
+
+    raise ValueError(f'{value} is not a valid boolean value')
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Search, add or remove host from YAML List inventory "
@@ -61,8 +72,12 @@ def parse_args():
         help="Comma-separated list of groups.")
     parser_add.add_argument(
         '-o', '--override_ungrouped',
-        action='store_true',
-        help="Set override_ungrouped.")
+        default=True,
+        const=True,
+        nargs='?',
+        metavar='BOOL',
+        type=str_to_bool,
+        help="Set override_ungrouped (default: true).")
 
     parser_set = subparsers.add_parser(
         'set',
@@ -196,13 +211,13 @@ def add(data, args):
                             'ansible' not in i or
                             'override_ungrouped' not in i['ansible']
                         ) and
-                        args.override_ungrouped
+                        not args.override_ungrouped
                     ) or (
                         'ansible' in i and
                         'override_ungrouped' in i['ansible'] and
-                        args.override_ungrouped and
-                        not i['ansible']['override_ungrouped'])):
-                log.info("Setting ansible.override_ungrouped: true")
+                        not args.override_ungrouped and
+                        i['ansible']['override_ungrouped'])):
+                log.info("Setting ansible.override_ungrouped: false")
 
                 if 'ansible' not in i:
                     i['ansible'] = {}
