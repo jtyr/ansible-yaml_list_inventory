@@ -24,7 +24,7 @@ def str_to_bool(value):
     elif value.lower() in ['true', '1', 'yes', 'y']:
         return True
 
-    raise ValueError(f'{value} is not a valid boolean value')
+    raise ValueError('Value %s is not a valid boolean value' % value)
 
 
 def parse_args():
