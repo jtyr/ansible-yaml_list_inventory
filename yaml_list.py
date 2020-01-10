@@ -225,12 +225,13 @@ class InventoryModule(BaseFileInventoryPlugin):
 
             # Override the default group if requested
             if (
-                    'ansible' not in host or
-                    'override_ungrouped' not in host['ansible'] or
-                    host['ansible']['override_ungrouped'] is True):
-                groups = []
-            else:
+                    'ansible' not in host or 
+                    'group' not in host['ansible'] or (
+                        'override_ungrouped' in host['ansible'] and
+                        host['ansible']['override_ungrouped'] is False)):
                 groups = [self.get_option('ungrouped_name')]
+            else:
+                groups = []
 
             # Check if the group_key exists in the host
             gk_exists, gk_v = self._get_host_key_value(host, group_key)
