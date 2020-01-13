@@ -44,6 +44,8 @@ data_file: inventory_data/prd.yaml
 ungrouped_name: production
 # Key name specifying Ansible groups
 #group_key: ansible_group
+# Prefix used to create top-level facts
+#top_fact_key_prefix: ^
 # Accept hosts which have 'uuid' value ending with 'a'
 accept:
   - uuid: ~.*a$
@@ -88,6 +90,11 @@ generated with a script reading the list of VMs from vCenter:
 - ansible:
     group: rdp
     override_ungrouped: yes
+    # All parameters starting with 'ansible_' will be automatically made
+    # top-level facts
+    ansible_user: myuser
+    # Another way of making top-level fact is to prefix the parameter with '^'
+    ^myfact1: my value
   ip: 192.168.1.12
   name: dc1-prd-rdp03
   state: poweredOff
